@@ -417,7 +417,7 @@ void onNoiseStrengthChange(Adjustment changed)
 bool needRebuild = true;
 Builder b;
    
-int main (string[] args)
+int main(string[] args)
 {    
    // First start SDL ...
    import viewer;
@@ -516,6 +516,9 @@ int main (string[] args)
    
    // Main loop (Gtk+)
    Main.run();
+
+   // Clear sdl stuffs
+   viewer.uninit();
    return 0;
 }
 

@@ -53,6 +53,22 @@ void stop() { status.requested = ViewerStatus.STOPPED; }
 void clear() { hasModel = false; }
 bool isRunning() { return !(status.requested == ViewerStatus.STOPPED && status.actual == ViewerStatus.STOPPED); }
 
+void uninit()
+{
+   if (context && renderWindow)
+   {
+      SDL_GL_DeleteContext(context);
+      SDL_DestroyWindow(renderWindow);
+      SDL_Quit();
+
+      debug
+      {
+         import std.stdio : writeln;
+         writeln("SDL cleared.");
+      }
+   }
+}
+
 void setIcon(char* data, int width, int height)
 {
    SDL_Surface* icon = SDL_CreateRGBSurfaceFrom(data, width, height, 32, width*4, 0x000000FF, 0x0000FF00, 0x00FF0000,0xFF000000);
@@ -190,21 +206,7 @@ private void initRenderingWindow()
    DerelictGL3.reload(); 
 }
 
-static ~this()
-{
-   if (context && renderWindow)
-   {
-      debug
-      {
-         import std.stdio : writeln;
-         writeln("SDL cleared.");
-      }
 
-      SDL_GL_DeleteContext(context);
-      SDL_DestroyWindow(renderWindow);
-      SDL_Quit();
-   }
-}
 
 public bool renderFrame()
 {
