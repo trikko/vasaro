@@ -18,59 +18,23 @@
 
 module mainwindow;
 
-import std.stdio;
-
 import viewer;
 import generator;
-import std.experimental.all;
 
-// GTK
-
-import gtk.Builder;
-import gtk.Main;
-import gtk.Widget;
-import gtk.Window;
-import std.stdio;
-import gtk.Button;
-import gtk.Frame;
-import gtk.CheckButton;
-import gtk.ComboBoxText;
-import gtk.ToggleButton;
-import gtk.TreeView;
-import gtk.Grid;
-import gtk.ListStore;
-import gtk.Box;
-import gtk.CellRendererToggle;
-import gtk.CellRendererText;
-import glib.Timeout;
-import gtk.Adjustment;
-
-import gtk.LevelBar;
-import gtk.ProgressBar;
-import gtk.Label;
-import gtk.Dialog;
-import gtk.FileChooserDialog;
-import gtk.FileChooserNative;
-import gobject.Signals;
-import gtk.FileChooserButton;
-import gdk.Threads;
-import gtk.MessageDialog;
-import gtk.TreeViewColumn;
-import gtk.TreePath;
-import gtk.TreeSelection;
-
-import std.concurrency;
-import std.datetime;
-
+// Ui binding
 import gtkattributes;
-
-import std.algorithm : splitter;
-import std.array : array;
-
-
 mixin GtkAttributes;
 
-@ui gtk.Window.Window   mainWindow;
+import   gtk.Button, gtk.CheckButton, gtk.ComboBoxText,
+         gtk.ToggleButton, gtk.TreeView, gtk.Grid, gtk.Frame, 
+         gtk.Adjustment, gtk.Window, gtk.Widget, gtk.ListStore;
+
+import glib.Timeout;
+
+// Used everywhere
+import std.conv : to;
+
+@ui Window   mainWindow;
 
 // General
 @ui CheckButton         showPreview;
@@ -93,6 +57,10 @@ mixin GtkAttributes;
 @ui Frame               noiseStrengthGroup;
 @ui TreeView            noiseList;
 
+
+import gtk.Builder;
+Builder b;
+
 // Just two fields: noise name and status (active/not active)
 ListStore   noiseListStore;
 
@@ -104,8 +72,9 @@ bool  adjusting      = false; // To avoid conflicts between gui elements that ar
 int   currentNoise   = -1;
 
 //  Closing window
-@event!(gtk.Window.Window)("mainWindow", "OnHide")
+@event!(Window)("mainWindow", "OnHide")
 void onWindowClose(Widget){ 
+   import gtk.Main;
    viewer.stop();
    Main.quit(); 
 }
@@ -148,6 +117,11 @@ void onAbout(Button t)
 void onExport(Button t)
 {
    import gtk.FileFilter;
+   import gtk.FileChooserNative;
+   import std.string    : empty, toLower, endsWith;
+   import std.stdio     : File;
+   import std.range     : chunks;
+   import std.algorithm : map;
 
    auto ff = new FileFilter();
    ff.addPattern("*.stl");
@@ -192,6 +166,7 @@ void onExport(Button t)
    }
    catch (Exception e)
    {
+      import gtk.MessageDialog;
       auto md = new MessageDialog(mainWindow, GtkDialogFlags.DESTROY_WITH_PARENT, GtkMessageType.ERROR, GtkButtonsType.CLOSE, "Error during file saving. Try changing file path.");
       md.run;
       md.destroy();   
@@ -237,9 +212,13 @@ void onNoiseAdded(Button b)
    import gtk.TreeIter;
    import gtk.TreeSelection;
    import std.random : uniform;
-
+   
    noises ~= Noise();
    noises[noises.length-1].seed = uniform(-10000, 10000);
+   noises[noises.length-1].amplitude = uniform(0.5, 2);
+   noises[noises.length-1].xScale = uniform(0.5, 5);
+   noises[noises.length-1].yScale = uniform(0.5, 5);
+   noises[noises.length-1].rotation = uniform(-0.5, 0.5);
 
    auto it = noiseListStore.createIter();
    noiseListStore.setValue(it, 0, true);
@@ -263,6 +242,9 @@ void onNoiseRemoved(Button b)
 @event!ComboBoxText("vaseProfile", "OnChanged")
 void onProfileSelected(ComboBoxText changed)
 {
+   import std.math : pow, sin, PI;
+   
+
    final switch(changed.getActive)
    {
       case 0: // CONSTANT
@@ -299,6 +281,8 @@ void onProfileSelected(ComboBoxText changed)
 @event!ComboBoxText("noiseStrength", "OnChanged")
 void onNoiseStrengthSelected(ComboBoxText changed)
 {
+   import std.math : pow, sin, PI;
+   
    final switch(changed.getActive)
    {
       case 0: // CONSTANT
@@ -414,10 +398,40 @@ void onNoiseStrengthChange(Adjustment changed)
 
 }
 
-bool needRebuild = true;
-Builder b;
-   
-int main(string[] args)
+version(Windows)
+{
+   // Copy/Pasted from DWiki
+   // It calls winmain to avoid terminal popup.
+
+   import core.runtime;
+   import core.sys.windows.windows;
+   import std.string;
+
+   extern (Windows)
+   int WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)
+   {
+      int result;
+
+      try
+      {
+         Runtime.initialize();
+         result = mainImpl([]);
+         Runtime.terminate();
+      }
+      catch (Throwable e) 
+      {
+         MessageBoxA(null, e.toString().toStringz(), null,  MB_ICONEXCLAMATION);
+         result = 0; 
+      }
+
+      return result;
+   }
+}
+
+// Other systems.
+else int main(string[] args) { return mainImpl(args); }
+
+int mainImpl(string[] args)
 {    
    // First start SDL ...
    import viewer;
@@ -426,7 +440,9 @@ int main(string[] args)
    
    // ... then gtk.
    import resources;
-   
+   import gtk.Main;
+   import gtk.Settings;
+
    Main.init(args);
    b = new Builder();
    b.addFromString(LAYOUT);
@@ -449,10 +465,15 @@ int main(string[] args)
    // For some obscures reasons, treeview won't work if
    // designed on Glade. I have to build it here instead.
    import gtk.TreeViewColumn;
+   import gtk.TreeSelection;
+   import gtk.ListStore;
+   import gtk.CellRendererToggle;
+   import gtk.CellRendererText;
+
    noiseListStore = new ListStore([GType.INT, GType.STRING]);
 
    TreeViewColumn column = new TreeViewColumn();
-   column.setTitle( "Noise" );
+   column.setTitle( "Layers" );
    noiseList.appendColumn(column);
 
    CellRendererToggle cell_bool = new CellRendererToggle();

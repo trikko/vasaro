@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- Generated with glade 3.20.0 -->
+<!-- Generated with glade 3.22.1 -->
 <interface>
   <requires lib="gtk+" version="3.20"/>
   <object class="GtkAdjustment" id="layerHeight">
@@ -197,6 +197,9 @@
     <property name="window_position">center</property>
     <property name="gravity">center</property>
     <child>
+      <placeholder/>
+    </child>
+    <child>
       <object class="GtkPaned">
         <property name="visible">True</property>
         <property name="can_focus">True</property>
@@ -217,6 +220,7 @@
                   <object class="GtkGrid">
                     <property name="visible">True</property>
                     <property name="can_focus">False</property>
+                    <property name="halign">center</property>
                     <property name="valign">center</property>
                     <property name="margin_left">10</property>
                     <property name="margin_right">10</property>
@@ -665,8 +669,9 @@
                             <property name="margin_top">10</property>
                             <property name="margin_bottom">10</property>
                             <property name="hexpand">True</property>
-                            <property name="headers_visible">False</property>
+                            <property name="headers_clickable">False</property>
                             <property name="enable_grid_lines">horizontal</property>
+                            <property name="activate_on_single_click">True</property>
                             <child internal-child="selection">
                               <object class="GtkTreeSelection"/>
                             </child>
@@ -737,12 +742,24 @@
                       </packing>
                     </child>
                     <child>
+                      <object class="GtkSeparator">
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
+                        <property name="margin_left">10</property>
+                      </object>
+                      <packing>
+                        <property name="expand">False</property>
+                        <property name="fill">True</property>
+                        <property name="position">1</property>
+                      </packing>
+                    </child>
+                    <child>
                       <object class="GtkGrid" id="noiseParamsGroup">
                         <property name="visible">True</property>
                         <property name="sensitive">False</property>
                         <property name="can_focus">False</property>
                         <property name="halign">start</property>
-                        <property name="valign">start</property>
+                        <property name="valign">center</property>
                         <property name="margin_left">10</property>
                         <property name="margin_top">10</property>
                         <property name="margin_bottom">10</property>
