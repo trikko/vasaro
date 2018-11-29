@@ -47,6 +47,7 @@ Build:
 dub --build=release-nobounds --compiler=ldc2
 ```
 If you want to create a bundle and install vasaro:
+```bash
 /bin/sh ./createMacOSBundle.sh
 ```
 
