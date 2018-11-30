@@ -8,6 +8,7 @@ UninstallDisplayIcon={app}\Vasaro.ico
 Compression=lzma2
 SolidCompression=yes
 ArchitecturesInstallIn64BitMode=x64
+LicenseFile=../../LICENSE
              
 
 [Files]
