@@ -1,11 +1,11 @@
 # Vasaro [![Paypal](https://img.shields.io/badge/donate-paypal-blue.svg)](https://paypal.me/andreafontana/10) [![Patreon](https://img.shields.io/badge/donate-patreon-orange.svg)](https://patreon.com/vasaro/)
 
-*(ipa: va'zarɔ)*
+[IPA](https://en.wiktionary.org/wiki/Wiktionary:International_Phonetic_Alphabet): /va'zarɔ/  
+Italian archaic form of *vasaio* - a person who makes ceramic ware (i.e. "potter")
 
 
 
-## What is it?
-Vasaro let you create 3d printable vases in a snap. 
+## How it works
 
 [![Vasaro preview](res/demo.gif)](https://www.youtube.com/watch?v=HkYo8WCW9jM)
 
