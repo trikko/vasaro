@@ -53,6 +53,9 @@ If you want to create a bundle and install vasaro:
 
 ### Building instructions for **Ubuntu/Debian**
 
+Please be sure to have the [latest dmd](https://dlang.org/download.html#dmd) version installed. Often official repositories have an outdated version.  
+For debian/ubuntu/mint/etc [an unofficial apt repository](https://d-apt.sourceforge.io/) is available with latest dmd compiler.
+
 Install required dependencies:
 ```bash
 sudo apt update
