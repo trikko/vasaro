@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- Generated with glade 3.22.1 -->
+<!-- Generated with glade 3.20.0 -->
 <interface>
   <requires lib="gtk+" version="3.20"/>
   <object class="GtkAdjustment" id="layerHeight">
@@ -196,9 +196,6 @@
     <property name="resizable">False</property>
     <property name="window_position">center</property>
     <property name="gravity">center</property>
-    <child>
-      <placeholder/>
-    </child>
     <child>
       <object class="GtkPaned">
         <property name="visible">True</property>
@@ -928,7 +925,7 @@
                             <property name="text" translatable="yes">0</property>
                             <property name="adjustment">noiseRotation</property>
                             <property name="climb_rate">0.10000000000000001</property>
-                            <property name="digits">1</property>
+                            <property name="digits">2</property>
                             <property name="numeric">True</property>
                           </object>
                           <packing>
