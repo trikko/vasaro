@@ -1,7 +1,7 @@
 
 [Setup]
 AppName=Vasaro
-AppVersion=1.0
+AppVersion=1.0.1
 DefaultDirName={pf}\Vasaro
 DefaultGroupName=Vasaro
 UninstallDisplayIcon={app}\Vasaro.ico

@@ -18,7 +18,7 @@
 
 module resources;
 
-immutable static VERSION = "1.0.0";
+immutable static VERSION = "1.0.1";
 immutable static LAYOUT = import("layout.glade");
 immutable static LOGO   = import("logo.raw");
 
