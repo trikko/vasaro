@@ -252,13 +252,10 @@ public bool renderFrame()
          {            
             // Buffers binding
             if (model[currentModel].vertex.length > 0) {
-               static bound = false;
 
-               if (bound)
-               {
-                  glDeleteBuffers(1, &model[currentModel].vertexVbo);
-                  glDeleteBuffers(1, &model[currentModel].vertexNormalsVbo);
-               }
+               // On first run it will not delete anything.
+               glDeleteBuffers(1, &model[currentModel].vertexVbo);
+               glDeleteBuffers(1, &model[currentModel].vertexNormalsVbo);
 
                glGenBuffers(1, &model[currentModel].vertexVbo);
                glBindBuffer(GL_ARRAY_BUFFER, model[currentModel].vertexVbo);
@@ -269,8 +266,6 @@ public bool renderFrame()
                glBindBuffer(GL_ARRAY_BUFFER, model[currentModel].vertexNormalsVbo);
                glBufferData(GL_ARRAY_BUFFER, model[currentModel].vertexNormals.length*float.sizeof, model[currentModel].vertexNormals.ptr, GL_STATIC_DRAW);
                glBindBuffer(GL_ARRAY_BUFFER, 0); /* release binding */
-               
-               bound = true;
             }
 
             hasModel = true;
