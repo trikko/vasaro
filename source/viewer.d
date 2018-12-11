@@ -30,9 +30,6 @@ public:
 
 struct VaseModel
 {
-   GLuint 	vertexVbo; 
-   GLuint 	vertexNormalsVbo; 
-
    float[]  vertex;
    float[]  vertexNormals;
 }
@@ -50,7 +47,6 @@ void start()
 }
 
 void stop() { status.requested = ViewerStatus.STOPPED; }
-void clear() { hasModel = false; }
 bool isRunning() { return !(status.requested == ViewerStatus.STOPPED && status.actual == ViewerStatus.STOPPED); }
 
 void uninit()
@@ -78,8 +74,10 @@ void setIcon(char* data, int width, int height)
 
 private:
 
-SDL_Window     *renderWindow  = null;
-SDL_GLContext  context        = null;
+SDL_Window        *renderWindow  = null;
+SDL_GLContext     context        = null;
+__gshared GLuint 	vertexVbo; 
+__gshared GLuint  vertexNormalsVbo; 
 
 enum ViewerStatus
 {
@@ -148,7 +146,7 @@ private void createWindow()
 {
    if (context) SDL_GL_DeleteContext(context);
    if (renderWindow) SDL_DestroyWindow(renderWindow);
-
+            
    renderWindow = SDL_CreateWindow(
       "Vasaro Rendering", 
       SDL_WINDOWPOS_CENTERED,
@@ -159,6 +157,7 @@ private void createWindow()
    );
 
    context = SDL_GL_CreateContext(renderWindow);
+
 
    // Some una-tantum settings for opengl rendering   
    glMatrixMode(GL_PROJECTION);
@@ -185,7 +184,12 @@ private void createWindow()
    SDL_CaptureMouse(SDL_TRUE);
 
    status.actual = ViewerStatus.STARTED;
+}
 
+private void initBuffers()
+{
+   glGenBuffers(1, &vertexVbo);
+   glGenBuffers(1, &vertexNormalsVbo);
 }
 
 private void initRenderingWindow()
@@ -204,6 +208,8 @@ private void initRenderingWindow()
    createWindow();
 
    DerelictGL3.reload(); 
+
+   initBuffers();
 }
 
 
@@ -229,6 +235,9 @@ public bool renderFrame()
       SDL_HideWindow(renderWindow);
       status.actual = ViewerStatus.STOPPED;
       hasModel = false;
+
+      glDeleteBuffers(1, &vertexVbo);
+      glDeleteBuffers(1, &vertexNormalsVbo);
    }
 
    // Show request received
@@ -236,6 +245,8 @@ public bool renderFrame()
    {
       //SDL_ShowWindow(renderWindow);
       createWindow();
+      initBuffers();
+
       status.actual = ViewerStatus.STARTED;
    }
 
@@ -253,19 +264,13 @@ public bool renderFrame()
             // Buffers binding
             if (model[currentModel].vertex.length > 0) {
 
-               // On first run it will not delete anything.
-               glDeleteBuffers(1, &model[currentModel].vertexVbo);
-               glDeleteBuffers(1, &model[currentModel].vertexNormalsVbo);
-
-               glGenBuffers(1, &model[currentModel].vertexVbo);
-               glBindBuffer(GL_ARRAY_BUFFER, model[currentModel].vertexVbo);
+               glBindBuffer(GL_ARRAY_BUFFER, vertexVbo);
                glBufferData(GL_ARRAY_BUFFER, model[currentModel].vertex.length*float.sizeof, model[currentModel].vertex.ptr, GL_STATIC_DRAW);
-               glBindBuffer(GL_ARRAY_BUFFER, 0); /* release binding */
+               glBindBuffer(GL_ARRAY_BUFFER, 0); 
                
-               glGenBuffers(1, &model[currentModel].vertexNormalsVbo);
-               glBindBuffer(GL_ARRAY_BUFFER, model[currentModel].vertexNormalsVbo);
+               glBindBuffer(GL_ARRAY_BUFFER, vertexNormalsVbo);
                glBufferData(GL_ARRAY_BUFFER, model[currentModel].vertexNormals.length*float.sizeof, model[currentModel].vertexNormals.ptr, GL_STATIC_DRAW);
-               glBindBuffer(GL_ARRAY_BUFFER, 0); /* release binding */
+               glBindBuffer(GL_ARRAY_BUFFER, 0); 
             }
 
             hasModel = true;
@@ -376,11 +381,11 @@ private void renderVase()
 
    // Push vertices and triangles
 	glEnableClientState(GL_VERTEX_ARRAY);
-	glBindBuffer(GL_ARRAY_BUFFER, model[currentModel].vertexVbo);
+	glBindBuffer(GL_ARRAY_BUFFER, vertexVbo);
 	glVertexPointer(3, GL_FLOAT, 0, cast(void*)(0));
 
 	glEnableClientState(GL_NORMAL_ARRAY);
-	glBindBuffer(GL_ARRAY_BUFFER, model[currentModel].vertexNormalsVbo);
+	glBindBuffer(GL_ARRAY_BUFFER, vertexNormalsVbo);
 	glNormalPointer(GL_FLOAT, 0, cast(void*)(0));
 
 	glBindBuffer(GL_ARRAY_BUFFER, 0); 
