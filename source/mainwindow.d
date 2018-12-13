@@ -151,9 +151,8 @@ void onExport(Button t)
 
       ubyte[80] header;
       header[0..signature.representation.length] = signature.representation;
-
       f.rawWrite(header);
-      f.rawWrite([cast(uint) model[currentModel].vertex.length / 3]);
+      f.rawWrite([ cast(uint)(model[currentModel].vertex.length / 9) ]);
 
       foreach(const ref v; model[currentModel].vertex.chunks(9).map!(x => cast(float[])x))
       {
