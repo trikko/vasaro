@@ -30,8 +30,8 @@ public:
 
 struct VaseModel
 {
-   float[]  vertex;
-   float[]  vertexNormals;
+   float[]  vertex         = null;
+   float[]  vertexNormals  = null;
 }
 
 __gshared VaseModel[2]  model;

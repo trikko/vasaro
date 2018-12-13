@@ -108,7 +108,8 @@ void createVase()
    import std.range : iota;
    import std.math : sin, cos, PI;
    import std.datetime.stopwatch : StopWatch;
-
+   import std.experimental.allocator;
+   import std.experimental.allocator.mallocator : Mallocator;
    
    // Calculate spline coeff. from ten points equally-separated
    float[4][10] naturalSpline(float[10] y)
@@ -181,11 +182,17 @@ void createVase()
 
 	auto layersCnt                   = (height/layer).to!size_t;
 	
-   Vec3[][] sideMeshVertex          = uninitializedArray!(Vec3[][])(res,layersCnt);
-   Vec3[][] sideMeshVertexNormals   = new Vec3[][](res,layersCnt);
+   Vec3[][] sideMeshVertex          = Mallocator.instance.makeMultidimensionalArray!Vec3(res, layersCnt); 
+   Vec3[][] sideMeshVertexNormals   = Mallocator.instance.makeMultidimensionalArray!Vec3(res, layersCnt); 
 
-   alias Coords = Tuple!(size_t, size_t);
-   Coords[] sideMeshVertexNormalsMap;
+   scope(exit)
+   {
+      Mallocator.instance.disposeMultidimensionalArray(sideMeshVertex);
+      Mallocator.instance.disposeMultidimensionalArray(sideMeshVertexNormals);
+   }
+
+   struct Coords { size_t x; size_t y; }
+   Coords[] sideMeshVertexNormalsMap = null;
 
 	float xC = 0.0f;
 
@@ -194,7 +201,8 @@ void createVase()
    // RADIUS VARIANCE
    //
 
-   float[] layersRadiusFactor = uninitializedArray!(float[])(layersCnt);
+   float[] layersRadiusFactor = Mallocator.instance.makeArray!float(layersCnt);
+   scope(exit) Mallocator.instance.dispose(layersRadiusFactor);
 
    {
       // I want to limit function inside [-1;1] interval
@@ -215,8 +223,9 @@ void createVase()
    // NOISE
    //
 
-   auto noiseMesh = new float[][](res, layersCnt);
-   
+   auto noiseMesh = Mallocator.instance.makeMultidimensionalArray!float(res, layersCnt); 
+   scope(exit) Mallocator.instance.disposeMultidimensionalArray(noiseMesh);
+
    immutable meanDiameter  = (min_diameter+max_diameter)/2;
    immutable diameterDelta = (max_diameter-min_diameter)/2;
     
@@ -281,7 +290,6 @@ void createVase()
       hasNoise = true;
    }  
 
-
    // Sum all the things up
    foreach(size_t x; parallel(iota(cast(size_t)0, res)))
    {
@@ -330,13 +338,17 @@ void createVase()
       + 2               // Top and bottom layer
       * base_vertex_coords_count;
 
+   if (model[candidateModel].vertex !is null) 
+      Mallocator.instance.dispose(model[candidateModel].vertex);
 
-   model[candidateModel].vertex.reserve(total_vertex_coords_count);
-   sideMeshVertexNormals.reserve(total_vertex_coords_count);
-   sideMeshVertexNormalsMap.reserve(total_vertex_coords_count);
+   if (model[candidateModel].vertexNormals !is null) 
+      Mallocator.instance.dispose(model[candidateModel].vertexNormals);
 
-   model[candidateModel].vertex.length = side_vertex_coords_count; // For each vertex we store x,y,z
-   sideMeshVertexNormalsMap.length = side_vertex_coords_count / 3; // For each vertex we store a normal
+   model[candidateModel].vertex        = Mallocator.instance.makeArray!float(total_vertex_coords_count);
+   model[candidateModel].vertexNormals = Mallocator.instance.makeArray!float(total_vertex_coords_count);
+   
+   sideMeshVertexNormalsMap = Mallocator.instance.makeArray!Coords(side_vertex_coords_count/3);
+   scope(exit) Mallocator.instance.dispose(sideMeshVertexNormalsMap);
 
    import core.atomic;
    shared(size_t) globalParallelIdx = 0;
@@ -373,9 +385,9 @@ void createVase()
             vertexSlice[3..6] = top.data[0..3];
             vertexSlice[6..9] = right.data[0..3];
 
-				sideMeshVertexNormalsMapSlice[0] = tuple(x,y);
-            sideMeshVertexNormalsMapSlice[1] = tuple(x+1,y);
-            sideMeshVertexNormalsMapSlice[2] = tuple(x,y+1);
+				sideMeshVertexNormalsMapSlice[0] = Coords(x,y);
+            sideMeshVertexNormalsMapSlice[1] = Coords(x+1,y);
+            sideMeshVertexNormalsMapSlice[2] = Coords(x,y+1);
 			}
 
 
@@ -405,9 +417,9 @@ void createVase()
             vertexSlice[3..6] = right.data[0..3];
             vertexSlice[6..9] = bottom.data[0..3];
 
-			   sideMeshVertexNormalsMapSlice[0]  = tuple(x,y);
-            sideMeshVertexNormalsMapSlice[1]  = tuple(x+1,y);
-            sideMeshVertexNormalsMapSlice[2]  = tuple(x+1,y-1);
+			   sideMeshVertexNormalsMapSlice[0]  = Coords(x,y);
+            sideMeshVertexNormalsMapSlice[1]  = Coords(x+1,y);
+            sideMeshVertexNormalsMapSlice[2]  = Coords(x+1,y-1);
 			}
 			
 		}
@@ -416,54 +428,69 @@ void createVase()
    if (!continueProcessing) return;
 
    // Top and bottom base
-	for(size_t x = 1; x < res; ++x)
-	{
-		if (!continueProcessing()) return;
-			
-		auto b = &sideMeshVertex[x-1][0];
-		auto c = &sideMeshVertex[x][0];
+   {
+      size_t startingIdx = side_vertex_coords_count;
+      for(size_t x = 1; x < res; ++x)
+      {
+         if (!continueProcessing()) return;
+            
+         auto b = &sideMeshVertex[x-1][0];
+         auto c = &sideMeshVertex[x][0];
 
-      model[candidateModel].vertex ~= [0, 0, 0];    // All triangles have a vertex in base center
-      model[candidateModel].vertex ~= b.data[0..3];
-      model[candidateModel].vertex ~= c.data[0..3];
-	}
+         model[candidateModel].vertex[startingIdx+0..startingIdx+3] = [0.0f, 0.0f, 0.0f];    // All triangles have a vertex in base center
+         model[candidateModel].vertex[startingIdx+3..startingIdx+6] = b.data[0..3];
+         model[candidateModel].vertex[startingIdx+6..startingIdx+9] = c.data[0..3];
+         startingIdx += 9;
+      }
 
-	for(size_t x = 1; x < res; ++x)
-	{
-		if (!continueProcessing()) return;
-			
-		auto b = &sideMeshVertex[x][layersCnt-1];
-		auto c = &sideMeshVertex[x-1][layersCnt-1];
+      for(size_t x = 1; x < res; ++x)
+      {
+         if (!continueProcessing()) return;
+            
+         auto b = &sideMeshVertex[x][layersCnt-1];
+         auto c = &sideMeshVertex[x-1][layersCnt-1];
 
-      model[candidateModel].vertex ~= [0, layer*(layersCnt-1), 0];
-      model[candidateModel].vertex ~= b.data[0..3];
-      model[candidateModel].vertex ~= c.data[0..3];
-	}
+         model[candidateModel].vertex[startingIdx+0..startingIdx+3] = [0.0f, layer*(layersCnt-1), 0.0f];
+         model[candidateModel].vertex[startingIdx+3..startingIdx+6] = b.data[0..3];
+         model[candidateModel].vertex[startingIdx+6..startingIdx+9] = c.data[0..3];
+         startingIdx += 9;
+      }
+   }
 
    // Sum up all the normals
-   model[candidateModel].vertexNormals.length = model[candidateModel].vertex.length;
    foreach(i, nIdx; parallel(sideMeshVertexNormalsMap))
    {
 	   if (!continueProcessing()) continue;
 
       // Normals of side mesh
-      if (i < side_vertex_coords_count / 3) model[candidateModel].vertexNormals[i*3..i*3+3] = sideMeshVertexNormals[nIdx[0]][nIdx[1]].normalized().data[0..3];
+      if (i < side_vertex_coords_count / 3) model[candidateModel].vertexNormals[i*3..i*3+3] = sideMeshVertexNormals[nIdx.x][nIdx.y].normalized().data[0..3];
    }
 
    // Normals of two bases
-   size_t startingIdx = sideMeshVertexNormalsMap.length;
-   foreach(i; parallel(iota(startingIdx,startingIdx+(res-1)*3)))
-      model[candidateModel].vertexNormals[i*3..i*3+3] = [0, -1, 0];
+   {
+      size_t startingIdx = sideMeshVertexNormalsMap.length;
+      foreach(i; parallel(iota(startingIdx,startingIdx+(res-1)*3)))
+         model[candidateModel].vertexNormals[i*3..i*3+3] = [0, -1, 0];
 
-   startingIdx += (res-1)*3;
-   foreach(i; parallel(iota(startingIdx,startingIdx+(res-1)*3)))
-      model[candidateModel].vertexNormals[i*3..i*3+3] = [0, 1, 0];
-   
+      startingIdx += (res-1)*3;
+      foreach(i; parallel(iota(startingIdx,startingIdx+(res-1)*3)))
+         model[candidateModel].vertexNormals[i*3..i*3+3] = [0, 1, 0];
+   }
+
    swGen.stop();
 
    if (!continueProcessing()) return;
 
    gs_actual = current;
+
+   auto oldModel = currentModel;
    currentModel = candidateModel;
+
+   Mallocator.instance.dispose(model[oldModel].vertex);
+   Mallocator.instance.dispose(model[oldModel].vertexNormals);
+
+   model[oldModel].vertex = null;
+   model[oldModel].vertexNormals = null;
+   
    writeln("Vase regenerated in: ", swGen.peek.total!"msecs", "ms");
 }
