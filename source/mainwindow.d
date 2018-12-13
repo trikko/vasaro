@@ -144,8 +144,13 @@ void onExport(Button t)
    {
       File f = File(filename, "wb");
 
-      char[80] header;
-      header[] = "Created with Vasaro.";
+      import resources : VERSION;
+      import std.string : representation;
+
+      string signature = "Created with vasaro " ~ VERSION;
+
+      ubyte[80] header;
+      header[0..signature.representation.length] = signature.representation;
 
       f.rawWrite(header);
       f.rawWrite([cast(uint) model[currentModel].vertex.length / 3]);
